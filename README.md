@@ -1,17 +1,8 @@
-# kats - Language Analyzer Tool 🚀
+# kats - Language Analyzer Tool
 
-**Fast, simple tool to analyze language distribution in projects**
+*Fast, simple tool to analyze language distribution in projects*
 
-## ✨ Features
-
-* **Blazing Fast** - Optimized scanning with minimal overhead
-* **Precise Results** - Exact percentages like "89.50% Rust, 10.50% C"
-* **50+ Languages** - Supports all major programming languages
-* **Clean Output** - Minimal, easy-to-read results
-* **Flexible Usage** - Works with paths or current directory
-* **Smart Ignore** - Automatically skips .git, node_modules, etc.
-
-## 📥 Installation
+## Installation
 
 ### One-line install (macOS/Linux)
 ```bash
@@ -29,7 +20,7 @@ cp kats ~/bin/kats
 chmod +x ~/bin/kats
 ```
 
-## 💻 Usage
+## Usage
 
 ```bash
 # Analyze current directory
@@ -45,27 +36,7 @@ kats --help
 kats --version
 ```
 
-## 📊 Example Output
-
-```
-Scanning my_awesome_project...
-
-Results:
---------
-By lines of code:
-  Rust                850 lines (68.00%)
-  C                   300 lines (24.00%)
-  Python              100 lines (8.00%)
-
-By file count:
-  Rust                20 files (47.62%)
-  C                   15 files (35.71%)
-  Python               7 files (16.67%)
-
-Total: 42 files, 1250 lines
-```
-
-## 🌐 Supported Languages
+## Supported Languages
 
 ### Core Languages
 * **Rust** (.rs) - Systems programming
@@ -113,26 +84,24 @@ Total: 42 files, 1250 lines
 * **Dockerfile** (dockerfile) - Container config
 * **Markdown** (.md) - Documentation
 
-## 🎯 Why kats?
+## Why kats?
 
-* **Lightning fast** - Scans projects in seconds
-* **Developer friendly** - Clean, minimal output
 * **Accurate** - Precise line and file counting
 * **No dependencies** - Just bash and standard tools
 * **Open source** - MIT licensed, free forever
 
-## 🔧 Requirements
+## Requirements
 
 * bash (not sh)
 * curl (for installation)
 * bc (for percentage calculations)
 * Standard Unix tools (find, grep, sed, sort, wc)
 
-## 📜 License
+## License
 
 MIT License - Free to use, modify, and distribute
 
-## 🤝 Contributing
+## Contributing
 
 Found a bug? Want to add a language? Open an issue or PR!
 
@@ -142,7 +111,7 @@ cd kats
 # Make your changes and submit a PR!
 ```
 
-## 🌟 Star History
+# Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=lattiece/kats&type=Date)](https://star-history.com/#lattiece/kats)
 
