@@ -1,32 +1,41 @@
-# kats - Language Analyzer Tool
+# kats - Language Analyzer Tool 🚀
 
-kats is a simple command-line tool that analyzes a project directory and shows the percentage distribution of different programming languages.
+**Fast, simple tool to analyze language distribution in projects**
 
-## Installation
+## ✨ Features
 
-### Quick Install (macOS/Linux)
+* **Blazing Fast** - Optimized scanning with minimal overhead
+* **Precise Results** - Exact percentages like "89.50% Rust, 10.50% C"
+* **50+ Languages** - Supports all major programming languages
+* **Clean Output** - Minimal, easy-to-read results
+* **Flexible Usage** - Works with paths or current directory
+* **Smart Ignore** - Automatically skips .git, node_modules, etc.
 
+## 📥 Installation
+
+### One-line install (macOS/Linux)
 ```bash
 curl -sSL https://raw.githubusercontent.com/lattiece/kats/main/install.sh | bash
 ```
 
-### Manual Install
+### Manual install
+```bash
+# Download the script
+git clone https://github.com/lattiece/kats.git
+cd kats
 
-1. Download the `kats` script from the GitHub repository
-2. Make it executable: `chmod +x kats`
-3. Move it to your PATH: `sudo mv kats /usr/local/bin/`
+# Install globally
+cp kats ~/bin/kats
+chmod +x ~/bin/kats
+```
 
-### GitHub Repository
-
-The source code is available at: https://github.com/lattiece/kats
-
-## Usage
+## 💻 Usage
 
 ```bash
 # Analyze current directory
 kats
 
-# Analyze specific directory
+# Analyze specific project
 kats /path/to/project
 
 # Show help
@@ -36,63 +45,107 @@ kats --help
 kats --version
 ```
 
-## Example Output
+## 📊 Example Output
 
 ```
-Scanning directory: my_project
+Scanning my_awesome_project...
 
-Analysis Results:
-================
+Results:
+--------
+By lines of code:
+  Rust                850 lines (68.00%)
+  C                   300 lines (24.00%)
+  Python              100 lines (8.00%)
 
-Total files analyzed: 42
-Total lines of code: 1250
+By file count:
+  Rust                20 files (47.62%)
+  C                   15 files (35.71%)
+  Python               7 files (16.67%)
 
-Language Distribution (by lines of code):
-----------------------------------------
-Rust                :   850 lines (68.00%)
-C                   :   300 lines (24.00%)
-Python              :   100 lines (8.00%)
-
-Language Distribution (by file count):
---------------------------------------
-Rust                :     20 files (47.62%)
-C                   :     15 files (35.71%)
-Python              :      7 files (16.67%)
-
-Analysis complete!
+Total: 42 files, 1250 lines
 ```
 
-## Supported Languages
+## 🌐 Supported Languages
 
-- Rust (.rs)
-- C (.c, .h)
-- C++ (.cpp, .cxx, .cc, .hpp, .hxx, .hh)
-- Python (.py)
-- JavaScript (.js, .mjs, .cjs)
-- TypeScript (.ts, .tsx)
-- Java (.java)
-- Go (.go)
-- Ruby (.rb)
-- PHP (.php)
-- Swift (.swift)
-- Kotlin (.kt, .kts)
-- Shell (.sh, .bash, .zsh, .fish)
-- HTML (.html, .htm)
-- CSS (.css)
-- SQL (.sql)
-- JSON (.json)
-- YAML (.yaml, .yml)
-- XML (.xml)
-- Markdown (.md, .markdown)
-- Text (.txt, .text)
+### Core Languages
+* **Rust** (.rs) - Systems programming
+* **C** (.c, .h) - Classic systems language
+* **C++** (.cpp, .hpp, etc.) - High performance
+* **Python** (.py) - Scripting & data science
+* **JavaScript/TypeScript** (.js, .ts, .tsx) - Web development
+* **Java** (.java) - Enterprise applications
+* **Go** (.go) - Cloud & backend
+* **Ruby** (.rb) - Web & scripting
+* **PHP** (.php) - Web development
+* **Swift** (.swift) - iOS/macOS development
 
-## Requirements
+### Modern & Functional
+* **Kotlin** (.kt, .kts) - Android & JVM
+* **Scala** (.scala) - JVM functional
+* **Dart** (.dart) - Flutter apps
+* **Elixir** (.ex, .exs) - Erlang VM
+* **Erlang** (.erl, .hrl) - Concurrent systems
+* **Haskell** (.hs, .lhs) - Pure functional
+* **Clojure** (.clj, .cljs) - Lisp on JVM
+* **Racket** (.rkt) - Scheme dialect
+* **Nim** (.nim) - Python-like performance
+* **Zig** (.zig) - Modern systems language
 
-- bash
-- curl (for installation)
-- bc (for percentage calculations)
-- standard Unix tools (find, grep, sed, sort, wc)
+### Web & Frontend
+* **Vue** (.vue) - Progressive framework
+* **Svelte** (.svelte) - Reactive components
+* **Astro** (.astro) - Content-focused sites
+* **CoffeeScript** (.coffee) - JavaScript alternative
+* **HTML/CSS** (.html, .htm, .css) - Web fundamentals
 
-## License
+### Data & Scripting
+* **R** (.r) - Statistical computing
+* **Lua** (.lua) - Embedded scripting
+* **Perl** (.pl, .pm) - Text processing
+* **Shell** (.sh, .bash, .zsh) - System scripting
+* **SQL** (.sql) - Database queries
 
-MIT License
+### Configuration & Build
+* **JSON** (.json) - Data interchange
+* **YAML/TOML** (.yaml, .yml, .toml) - Config files
+* **XML** (.xml) - Data markup
+* **Makefile** (makefile) - Build automation
+* **Dockerfile** (dockerfile) - Container config
+* **Markdown** (.md) - Documentation
+
+## 🎯 Why kats?
+
+* **Lightning fast** - Scans projects in seconds
+* **Developer friendly** - Clean, minimal output
+* **Accurate** - Precise line and file counting
+* **No dependencies** - Just bash and standard tools
+* **Open source** - MIT licensed, free forever
+
+## 🔧 Requirements
+
+* bash (not sh)
+* curl (for installation)
+* bc (for percentage calculations)
+* Standard Unix tools (find, grep, sed, sort, wc)
+
+## 📜 License
+
+MIT License - Free to use, modify, and distribute
+
+## 🤝 Contributing
+
+Found a bug? Want to add a language? Open an issue or PR!
+
+```bash
+git clone https://github.com/lattiece/kats.git
+cd kats
+# Make your changes and submit a PR!
+```
+
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=lattiece/kats&type=Date)](https://star-history.com/#lattiece/kats)
+
+---
+
+**kats - Because every project deserves a quick language check!** 🐱💻

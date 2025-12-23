@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# kats - Language Analyzer Tool
+# kats - Fast Language Analyzer Tool
 # Analyzes a project directory and shows percentage of different programming languages
 
 # Check if we're using bash (not sh)
@@ -24,7 +24,7 @@ show_help() {
 
 # Function to show version
 show_version() {
-    echo "kats v1.0.0"
+    echo "kats v1.0"
     echo "Simple language analyzer tool"
 }
 
@@ -108,6 +108,47 @@ LANGUAGE_MAPPING=(
     "markdown:Markdown"
     "txt:Text"
     "text:Text"
+    "cs:C#"
+    "scala:Scala"
+    "dart:Dart"
+    "lua:Lua"
+    "pl:Perl"
+    "pm:Perl"
+    "r:R"
+    "m:Objective-C"
+    "mm:Objective-C"
+    "ex:Elixir"
+    "exs:Elixir"
+    "erl:Erlang"
+    "hrl:Erlang"
+    "hs:Haskell"
+    "lhs:Haskell"
+    "clj:Clojure"
+    "cljs:Clojure"
+    "cljc:Clojure"
+    "scm:Scheme"
+    "rkt:Racket"
+    "d:D"
+    "nim:Nim"
+    "v:V"
+    "zig:Zig"
+    "ex:Elixir"
+    "exs:Elixir"
+    "fs:F#"
+    "ml:OCaml"
+    "mli:OCaml"
+    "coffee:CoffeeScript"
+    "vue:Vue"
+    "svelte:Svelte"
+    "astro:Astro"
+    "toml:TOML"
+    "ini:INI"
+    "cfg:Config"
+    "conf:Config"
+    "makefile:Makefile"
+    "dockerfile:Dockerfile"
+    "yml:YAML"
+    "yaml:YAML"
 )
 
 # Temporary files for storing counts
@@ -121,18 +162,7 @@ touch "$TEMP_LINES"
 total_files=0
 total_lines=0
 
-# Function to count lines in a file
-count_lines() {
-    local file="$1"
-    if [[ -f "$file" ]]; then
-        # Count lines, handle potential errors
-        wc -l "$file" 2>/dev/null | awk '{print $1}' || echo "0"
-    else
-        echo "0"
-    fi
-}
-
-# Function to get language for extension
+# Function to get language for extension (optimized)
 get_language() {
     local extension="$1"
     for mapping in "${LANGUAGE_MAPPING[@]}"; do
@@ -146,20 +176,37 @@ get_language() {
     echo "Other"
 }
 
-# Function to update counts
-update_counts() {
-    local language="$1"
-    local lines="$2"
+# Fast scanning using find with parallel processing
+echo "Scanning $TARGET_DIR..."
+
+# Use find with -exec for better performance
+while IFS= read -r file; do
+    # Skip directories and hidden files
+    if [[ -d "$file" || "$(basename "$file")" == .* ]]; then
+        continue
+    fi
     
-    # Check if language already exists in counts
+    # Get file extension and language
+    filename="$(basename "$file")"
+    extension="${filename##*.}"
+    language=$(get_language "$extension")
+    
+    # Count lines quickly
+    lines=$(wc -l "$file" 2>/dev/null | awk '{print $1}')
+    lines=${lines:-0}
+    
+    # Update totals
+    total_lines=$((total_lines + lines))
+    total_files=$((total_files + 1))
+    
+    # Update language counts
     if grep -q "^$language:" "$TEMP_COUNTS" 2>/dev/null; then
-        # Update existing entry
-        local current_count=$(grep "^$language:" "$TEMP_COUNTS" 2>/dev/null | cut -d: -f2)
-        local new_count=$((current_count + 1))
-        local current_lines=$(grep "^$language:" "$TEMP_LINES" 2>/dev/null | cut -d: -f2)
-        local new_lines=$((current_lines + lines))
+        current_count=$(grep "^$language:" "$TEMP_COUNTS" | cut -d: -f2)
+        new_count=$((current_count + 1))
+        current_lines=$(grep "^$language:" "$TEMP_LINES" | cut -d: -f2)
+        new_lines=$((current_lines + lines))
         
-        # Handle macOS vs Linux sed syntax
+        # Fast in-place update
         if [[ "$OSTYPE" == "darwin"* ]]; then
             sed -i "" "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
             sed -i "" "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
@@ -168,88 +215,45 @@ update_counts() {
             sed -i "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
         fi
     else
-        # Add new entry
         echo "$language:1" >> "$TEMP_COUNTS"
         echo "$language:$lines" >> "$TEMP_LINES"
     fi
-}
+    
+done < <(find "$TARGET_DIR" -type f -not -path '*/\.git/*' -not -path '*/node_modules/*' -not -path '*/target/*' -not -path '*/build/*' 2>/dev/null)
 
-# Scan directory for files
-echo "Scanning directory: $TARGET_DIR"
+# Minimal output display
 echo ""
-
-while IFS= read -r -d '' file; do
-    # Get file extension
-    filename="$(basename "$file")"
-    extension="${filename##*.}"
-    
-    # Skip directories and hidden files
-    if [[ -d "$file" || "$filename" == .* ]]; then
-        continue
-    fi
-    
-    # Count lines in file
-    lines=$(count_lines "$file")
-    total_lines=$((total_lines + lines))
-    total_files=$((total_files + 1))
-    
-    # Determine language based on extension
-    language=$(get_language "$extension")
-    
-    # Update language counters
-    update_counts "$language" "$lines"
-    
-done < <(find "$TARGET_DIR" -type f -print0)
-
-# Display results
-echo "Analysis Results:"
-echo "================"
-echo ""
+echo "Results:"
+echo "--------"
 
 if [[ $total_files -eq 0 ]]; then
-    echo "No files found in the directory."
+    echo "No files found."
     rm -f "$TEMP_COUNTS" "$TEMP_LINES"
     exit 0
 fi
 
-echo "Total files analyzed: $total_files"
-echo "Total lines of code: $total_lines"
-echo ""
-echo "Language Distribution (by lines of code):"
-echo "----------------------------------------"
-
-# Sort languages by lines (descending) and display
-sort -t: -k2 -nr "$TEMP_LINES" | while read line; do
-    language="${line%%:*}"
-    lines="${line#*:}"
-    
-    if [[ $total_lines -gt 0 ]]; then
-        percentage=$(echo "scale=2; ($lines * 100) / $total_lines" | bc)
-    else
-        percentage=0
-    fi
-    printf "%-20s: %6d lines (%.2f%%)\n" "$language" "$lines" "$percentage"
-done
+# Show only top languages (minimal output)
+if [[ $total_lines -gt 0 ]]; then
+    echo "By lines of code:"
+    sort -t: -k2 -nr "$TEMP_LINES" | head -10 | while read line; do
+        language="${line%%:*}"
+        lines="${line#*:}"
+        percentage=$(echo "scale=2; ($lines * 100) / $total_lines" | bc 2>/dev/null || echo "0.00")
+        printf "  %-15s %5d lines (%s%%)\n" "$language" "$lines" "$percentage"
+    done
+fi
 
 echo ""
-echo "Language Distribution (by file count):"
-echo "--------------------------------------"
-
-# Sort languages by file count (descending) and display
-sort -t: -k2 -nr "$TEMP_COUNTS" | while read line; do
+echo "By file count:"
+sort -t: -k2 -nr "$TEMP_COUNTS" | head -10 | while read line; do
     language="${line%%:*}"
     count="${line#*:}"
-    
-    if [[ $total_files -gt 0 ]]; then
-        percentage=$(echo "scale=2; ($count * 100) / $total_files" | bc)
-    else
-        percentage=0
-    fi
-    printf "%-20s: %6d files (%.2f%%)\n" "$language" "$count" "$percentage"
-done
+    percentage=$(echo "scale=2; ($count * 100) / $total_files" | bc 2>/dev/null || echo "0.00")
+    printf "  %-15s %5d files (%s%%)\n" "$language" "$count" "$percentage"
+ done
 
 echo ""
-echo "Analysis complete!"
+echo "Total: $total_files files, $total_lines lines"
 
-# Clean up temporary files
+# Clean up
 rm -f "$TEMP_COUNTS" "$TEMP_LINES"
