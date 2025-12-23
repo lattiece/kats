@@ -1,0 +1,255 @@
+#!/bin/bash
+
+# kats - Language Analyzer Tool
+# Analyzes a project directory and shows percentage of different programming languages
+
+# Check if we're using bash (not sh)
+if [[ -z "$BASH_VERSION" ]]; then
+    echo "Error: kats must be run with bash, not sh"
+    exit 1
+fi
+
+# Function to show help
+show_help() {
+    echo "Usage: kats [directory]"
+    echo ""
+    echo "Analyzes a project directory and shows percentage of different programming languages."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help    Show this help message"
+    echo "  -v, --version Show version information"
+    echo ""
+    echo "If no directory is specified, the current directory is analyzed."
+}
+
+# Function to show version
+show_version() {
+    echo "kats v1.0.0"
+    echo "Simple language analyzer tool"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -v|--version)
+            show_version
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            if [[ -z "$TARGET_DIR" ]]; then
+                TARGET_DIR="$1"
+            else
+                echo "Error: Only one directory can be specified"
+                show_help
+                exit 1
+            fi
+            ;;
+    esac
+    shift
+done
+
+# Set target directory (default to current directory)
+if [[ -z "$TARGET_DIR" ]]; then
+    TARGET_DIR="."
+fi
+
+# Check if directory exists
+if [[ ! -d "$TARGET_DIR" ]]; then
+    echo "Error: Directory '$TARGET_DIR' does not exist"
+    exit 1
+fi
+
+# Language extensions mapping (using simple format: "extension:language")
+LANGUAGE_MAPPING=(
+    "rs:Rust"
+    "c:C"
+    "h:C"
+    "cpp:C++"
+    "cxx:C++"
+    "cc:C++"
+    "hpp:C++"
+    "hxx:C++"
+    "hh:C++"
+    "py:Python"
+    "js:JavaScript"
+    "mjs:JavaScript"
+    "cjs:JavaScript"
+    "ts:TypeScript"
+    "tsx:TypeScript"
+    "java:Java"
+    "go:Go"
+    "rb:Ruby"
+    "php:PHP"
+    "swift:Swift"
+    "kt:Kotlin"
+    "kts:Kotlin"
+    "sh:Shell"
+    "bash:Shell"
+    "zsh:Shell"
+    "fish:Shell"
+    "html:HTML"
+    "htm:HTML"
+    "css:CSS"
+    "sql:SQL"
+    "json:JSON"
+    "yaml:YAML"
+    "yml:YAML"
+    "xml:XML"
+    "md:Markdown"
+    "markdown:Markdown"
+    "txt:Text"
+    "text:Text"
+)
+
+# Temporary files for storing counts
+TEMP_COUNTS=$(mktemp)
+TEMP_LINES=$(mktemp)
+
+# Initialize temporary files
+touch "$TEMP_COUNTS"
+touch "$TEMP_LINES"
+
+total_files=0
+total_lines=0
+
+# Function to count lines in a file
+count_lines() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        # Count lines, handle potential errors
+        wc -l "$file" 2>/dev/null | awk '{print $1}' || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Function to get language for extension
+get_language() {
+    local extension="$1"
+    for mapping in "${LANGUAGE_MAPPING[@]}"; do
+        local ext="${mapping%%:*}"
+        local lang="${mapping#*:}"
+        if [[ "$extension" == "$ext" ]]; then
+            echo "$lang"
+            return
+        fi
+    done
+    echo "Other"
+}
+
+# Function to update counts
+update_counts() {
+    local language="$1"
+    local lines="$2"
+    
+    # Check if language already exists in counts
+    if grep -q "^$language:" "$TEMP_COUNTS" 2>/dev/null; then
+        # Update existing entry
+        local current_count=$(grep "^$language:" "$TEMP_COUNTS" 2>/dev/null | cut -d: -f2)
+        local new_count=$((current_count + 1))
+        local current_lines=$(grep "^$language:" "$TEMP_LINES" 2>/dev/null | cut -d: -f2)
+        local new_lines=$((current_lines + lines))
+        
+        # Handle macOS vs Linux sed syntax
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i "" "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
+            sed -i "" "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+        else
+            sed -i "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
+            sed -i "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+        fi
+    else
+        # Add new entry
+        echo "$language:1" >> "$TEMP_COUNTS"
+        echo "$language:$lines" >> "$TEMP_LINES"
+    fi
+}
+
+# Scan directory for files
+echo "Scanning directory: $TARGET_DIR"
+echo ""
+
+while IFS= read -r -d '' file; do
+    # Get file extension
+    filename="$(basename "$file")"
+    extension="${filename##*.}"
+    
+    # Skip directories and hidden files
+    if [[ -d "$file" || "$filename" == .* ]]; then
+        continue
+    fi
+    
+    # Count lines in file
+    lines=$(count_lines "$file")
+    total_lines=$((total_lines + lines))
+    total_files=$((total_files + 1))
+    
+    # Determine language based on extension
+    language=$(get_language "$extension")
+    
+    # Update language counters
+    update_counts "$language" "$lines"
+    
+done < <(find "$TARGET_DIR" -type f -print0)
+
+# Display results
+echo "Analysis Results:"
+echo "================"
+echo ""
+
+if [[ $total_files -eq 0 ]]; then
+    echo "No files found in the directory."
+    rm -f "$TEMP_COUNTS" "$TEMP_LINES"
+    exit 0
+fi
+
+echo "Total files analyzed: $total_files"
+echo "Total lines of code: $total_lines"
+echo ""
+echo "Language Distribution (by lines of code):"
+echo "----------------------------------------"
+
+# Sort languages by lines (descending) and display
+sort -t: -k2 -nr "$TEMP_LINES" | while read line; do
+    language="${line%%:*}"
+    lines="${line#*:}"
+    
+    if [[ $total_lines -gt 0 ]]; then
+        percentage=$(echo "scale=2; ($lines * 100) / $total_lines" | bc)
+    else
+        percentage=0
+    fi
+    printf "%-20s: %6d lines (%.2f%%)\n" "$language" "$lines" "$percentage"
+done
+
+echo ""
+echo "Language Distribution (by file count):"
+echo "--------------------------------------"
+
+# Sort languages by file count (descending) and display
+sort -t: -k2 -nr "$TEMP_COUNTS" | while read line; do
+    language="${line%%:*}"
+    count="${line#*:}"
+    
+    if [[ $total_files -gt 0 ]]; then
+        percentage=$(echo "scale=2; ($count * 100) / $total_files" | bc)
+    else
+        percentage=0
+    fi
+    printf "%-20s: %6d files (%.2f%%)\n" "$language" "$count" "$percentage"
+done
+
+echo ""
+echo "Analysis complete!"
+
+# Clean up temporary files
+rm -f "$TEMP_COUNTS" "$TEMP_LINES"
