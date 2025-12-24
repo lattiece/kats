@@ -1,6 +1,6 @@
-# kats - Language Analyzer Tool v1.1
+# kats - Language Analyzer Tool
 
-*Fast, simple tool to analyze language distribution in projects with precise percentages*
+*Fast, simple tool to analyze programming language structure in projects with precise percentages*
 
 ## Installation
 
@@ -88,22 +88,15 @@ kats --version
 
 * **Accurate** - Precise line and file counting
 * **No dependencies** - Just bash and standard tools
-* **Open source** - MIT licensed, free forever
+* **Open source** - Apache 2.0 licensed, free forever
 
 ## Requirements
 
-* bash (not sh)
-* curl (for installation)
-* bc (for percentage calculations)
-* Standard Unix tools (find, grep, sed, sort, wc)
-
-## License
-
-MIT License - Free to use, modify, and distribute
+* a good OS that isnt windows (yet)
 
 ## Contributing
 
-Found a bug? Want to add a language? Open an issue or PR!
+Found a bug? Want to add a language? Open an issue or Pull Request!
 
 ```bash
 git clone https://github.com/lattiece/kats.git
@@ -117,4 +110,4 @@ cd kats
 
 ---
 
-**kats - Because every project deserves a quick language check!** 🐱💻
+**kats - Because every project deserves a quick language check!** 🐱
