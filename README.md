@@ -9,6 +9,14 @@
 curl -sSL https://raw.githubusercontent.com/lattiece/kats/main/install.sh | bash
 ```
 
+### Windows Installation
+```powershell
+# Run in PowerShell as Administrator
+Set-ExecutionPolicy Bypass -Scope Process -Force
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lattiece/kats/main/windows/install_windows.ps1" -OutFile "install_windows.ps1"
+."install_windows.ps1"
+```
+
 ### Manual install
 ```bash
 # Download the script
@@ -18,6 +26,19 @@ cd kats
 # Install globally
 cp kats ~/bin/kats
 chmod +x ~/bin/kats
+```
+
+### Windows Manual Install
+```powershell
+# Download the repository
+git clone https://github.com/lattiece/kats.git
+cd kats
+
+# Run directly
+powershell.exe -ExecutionPolicy Bypass -File .\windows\kats.ps1
+
+# Or install globally (run as Administrator)
+."windows\install_windows.ps1"
 ```
 
 ## Usage
@@ -92,7 +113,8 @@ kats --version
 
 ## Requirements
 
-* a good OS that isnt windows (yet)
+* **Windows**: PowerShell 5.1 or later
+* **macOS/Linux**: bash and standard Unix tools
 
 ## Contributing
 
