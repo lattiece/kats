@@ -167,6 +167,29 @@ $LANGUAGE_MAPPING = @{
     "conf" = "Config"
     "makefile" = "Makefile"
     "dockerfile" = "Dockerfile"
+    "sln" = "Solution"
+    "csproj" = "C# Project"
+    "vb" = "Visual Basic"
+    "vbs" = "VBScript"
+    "ps1" = "PowerShell"
+    "psm1" = "PowerShell"
+    "psd1" = "PowerShell"
+    "bat" = "Batch"
+    "cmd" = "Batch"
+    "asm" = "Assembly"
+    "s" = "Assembly"
+
+    "xaml" = "XAML"
+    "axaml" = "XAML"
+
+    "gradle" = "Gradle"
+    "groovy" = "Groovy"
+    "gvy" = "Groovy"
+    "gy" = "Groovy"
+    "gsp" = "Groovy"
+
+    "cshtml" = "C#"
+    "razor" = "C#"
 }
 
 # Function to get language for extension

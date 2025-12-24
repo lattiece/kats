@@ -124,6 +124,8 @@ LANGUAGE_MAPPING=(
     "txt:Text"
     "text:Text"
     "cs:C#"
+    "cshtml:C#"
+    "razor:C#"
     "scala:Scala"
     "dart:Dart"
     "lua:Lua"
@@ -164,6 +166,27 @@ LANGUAGE_MAPPING=(
     "conf:Config"
     "makefile:Makefile"
     "dockerfile:Dockerfile"
+    "sln:Solution"
+    "csproj:C# Project"
+    "vb:Visual Basic"
+    "vbs:VBScript"
+    "ps1:PowerShell"
+    "psm1:PowerShell"
+    "psd1:PowerShell"
+    "bat:Batch"
+    "cmd:Batch"
+    "asm:Assembly"
+    "s:Assembly"
+
+    "xaml:XAML"
+    "axaml:XAML"
+
+    "gradle:Gradle"
+    "groovy:Groovy"
+    "gvy:Groovy"
+    "gy:Groovy"
+    "gsp:Groovy"
+
 )
 
 # Fast scanning using find with direct processing
