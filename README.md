@@ -1,6 +1,6 @@
-# kats - Language Analyzer Tool
+# kats - Language Analyzer Tool v1.1
 
-*Fast, simple tool to analyze language distribution in projects*
+*Fast, simple tool to analyze language distribution in projects with precise percentages*
 
 ## Installation
 

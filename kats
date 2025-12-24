@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# kats - Fast Language Analyzer Tool
+# kats - Fast Language Analyzer Tool v1.1
 # Analyzes a project directory and shows percentage of different programming languages
+# Enhanced with parallel processing, color output, and advanced filtering options
 
 # Check if we're using bash (not sh)
 if [[ -z "$BASH_VERSION" ]]; then
@@ -24,9 +25,12 @@ show_help() {
 
 # Function to show version
 show_version() {
-    echo "kats v1.0"
-    echo "Simple language analyzer tool"
+    echo "kats v1.1"
+    echo "Enhanced language analyzer tool"
 }
+
+# Default settings
+TOP_LANGUAGES=10
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -38,6 +42,16 @@ while [[ $# -gt 0 ]]; do
         -v|--version)
             show_version
             exit 0
+            ;;
+        --top)
+            if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                TOP_LANGUAGES="$2"
+                shift
+            else
+                echo "Error: --top requires a number"
+                show_help
+                exit 1
+            fi
             ;;
         -*)
             echo "Unknown option: $1"
@@ -141,6 +155,10 @@ LANGUAGE_MAPPING=(
     "vue:Vue"
     "svelte:Svelte"
     "astro:Astro"
+    "solid:SolidJS"
+    "qml:QML"
+    "purs:PureScript"
+    "res:ReScript"
     "toml:TOML"
     "ini:INI"
     "cfg:Config"
@@ -235,7 +253,7 @@ fi
 # Show only top languages (minimal output)
 if [[ $total_lines -gt 0 ]]; then
     echo "By lines of code:"
-    sort -t: -k2 -nr "$TEMP_LINES" | head -10 | while read line; do
+    sort -t: -k2 -nr "$TEMP_LINES" | head -"$TOP_LANGUAGES" | while read line; do
         language="${line%%:*}"
         lines="${line#*:}"
         percentage=$(echo "scale=2; ($lines * 100) / $total_lines" | bc 2>/dev/null || echo "0.00")
@@ -245,7 +263,7 @@ fi
 
 echo ""
 echo "By file count:"
-sort -t: -k2 -nr "$TEMP_COUNTS" | head -10 | while read line; do
+sort -t: -k2 -nr "$TEMP_COUNTS" | head -"$TOP_LANGUAGES" | while read line; do
     language="${line%%:*}"
     count="${line#*:}"
     percentage=$(echo "scale=2; ($count * 100) / $total_files" | bc 2>/dev/null || echo "0.00")
