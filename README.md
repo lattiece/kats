@@ -156,10 +156,6 @@ cd kats
 # Make your changes and submit a PR!
 ```
 
-# Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=lattiece/kats&type=Date)](https://star-history.com/#lattiece/kats)
-
 ---
 
-**kats - Because every project deserves a quick language check!** 🐱
+**kats - Because every project deserves a quick language check!**
