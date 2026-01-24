@@ -1,5 +1,5 @@
 <#
-    kats - Ultra-Fast Language Analyzer Tool v1.1 (Windows Edition)
+    kats - Ultra-Fast Language Analyzer Tool v1.2 (Windows Edition)
     Analyzes a project directory and shows percentage of different programming languages
     PowerShell version for Windows compatibility
 #>
@@ -13,14 +13,16 @@ function Show-Help {
     Write-Host "Options:"
     Write-Host "  -h, --help    Show this help message"
     Write-Host "  -v, --version Show version information"
+    Write-Host "  --top N       Show top N languages (default: 10)"
     Write-Host ""
     Write-Host "If no directory is specified, the current directory is analyzed."
+    Write-Host "If the directory is a git repository, .gitignore patterns are respected."
 }
 
 # Function to show version
 function Show-Version {
-    Write-Host "kats v1.1 (Windows Edition)"
-    Write-Host "Enhanced language analyzer with --top option and modern language support"
+    Write-Host "kats v1.2 (Windows Edition)"
+    Write-Host "Enhanced language analyzer with gitignore support and color output"
 }
 
 # Default settings
@@ -31,43 +33,35 @@ $TARGET_DIR = $null
 for ($i = 0; $i -lt $args.Length; $i++) {
     $arg = $args[$i]
     
-    switch ($arg) {
-        "-h" {
+    switch -Regex ($arg) {
+        "^(-h|--help)$" {
             Show-Help
             exit 0
         }
-        "--help" {
-            Show-Help
-            exit 0
-        }
-        "-v" {
+        "^(-v|--version)$" {
             Show-Version
             exit 0
         }
-        "--version" {
-            Show-Version
-            exit 0
-        }
-        "--top" {
+        "^--top$" {
             $i++
             if ($i -lt $args.Length -and $args[$i] -match "^\d+$") {
                 $TOP_LANGUAGES = [int]$args[$i]
             } else {
-                Write-Host "Error: --top requires a number"
+                Write-Host "Error: --top requires a number" -ForegroundColor Red
                 Show-Help
                 exit 1
             }
-            break
+        }
+        "^-.*" {
+            Write-Host "Unknown option: $arg" -ForegroundColor Red
+            Show-Help
+            exit 1
         }
         default {
-            if ($arg -match "^-") {
-                Write-Host "Unknown option: $arg"
-                Show-Help
-                exit 1
-            } elseif ($null -eq $TARGET_DIR) {
+            if ($null -eq $TARGET_DIR) {
                 $TARGET_DIR = $arg
             } else {
-                Write-Host "Error: Only one directory can be specified"
+                Write-Host "Error: Only one directory can be specified" -ForegroundColor Red
                 Show-Help
                 exit 1
             }
@@ -82,7 +76,7 @@ if ($null -eq $TARGET_DIR) {
 
 # Check if directory exists
 if (-not (Test-Path -Path $TARGET_DIR -PathType Container)) {
-    Write-Host "Error: Directory '$TARGET_DIR' does not exist"
+    Write-Host "Error: Directory '$TARGET_DIR' does not exist" -ForegroundColor Red
     exit 1
 }
 
@@ -127,6 +121,8 @@ $LANGUAGE_MAPPING = @{
     "txt" = "Text"
     "text" = "Text"
     "cs" = "C#"
+    "cshtml" = "C#"
+    "razor" = "C#"
     "scala" = "Scala"
     "dart" = "Dart"
     "lua" = "Lua"
@@ -178,18 +174,13 @@ $LANGUAGE_MAPPING = @{
     "cmd" = "Batch"
     "asm" = "Assembly"
     "s" = "Assembly"
-
     "xaml" = "XAML"
     "axaml" = "XAML"
-
     "gradle" = "Gradle"
     "groovy" = "Groovy"
     "gvy" = "Groovy"
     "gy" = "Groovy"
     "gsp" = "Groovy"
-
-    "cshtml" = "C#"
-    "razor" = "C#"
 }
 
 # Function to get language for extension
@@ -200,7 +191,7 @@ function Get-Language($extension) {
     return "Other"
 }
 
-Write-Host "Scanning $TARGET_DIR..."
+Write-Host "Scanning $TARGET_DIR..." -ForegroundColor Cyan
 
 # Use hashtables for counting
 $languageCounts = @{}
@@ -208,28 +199,56 @@ $languageLines = @{}
 $totalFiles = 0
 $totalLines = 0
 
-# Get all files, excluding common directories
-$files = Get-ChildItem -Path $TARGET_DIR -File -Recurse | 
-    Where-Object {
-        $_.FullName -notmatch '\\\.git\\' -and 
-        $_.FullName -notmatch '\\node_modules\\' -and 
-        $_.FullName -notmatch '\\target\\' -and 
-        $_.FullName -notmatch '\\build\\' -and 
-        $_.Name -notmatch '^\\.'
+# Check for git repo
+$isGitRepo = $false
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    $gitCheck = git -C "$TARGET_DIR" rev-parse --is-inside-work-tree 2>$null
+    if ($gitCheck -eq "true") {
+        $isGitRepo = $true
     }
+}
 
-foreach ($file in $files) {
-    $filename = $file.Name
+$files = @()
+
+if ($isGitRepo) {
+    # Use git ls-files for respect of .gitignore
+    # We get relative paths, need to join with TARGET_DIR
+    $gitFiles = git -C "$TARGET_DIR" ls-files --cached --others --exclude-standard
+    foreach ($gFile in $gitFiles) {
+        $files += Join-Path -Path $TARGET_DIR -ChildPath $gFile
+    }
+} else {
+    # Fallback to Get-ChildItem with exclusions
+    $files = Get-ChildItem -Path $TARGET_DIR -File -Recurse |
+        Where-Object {
+            $_.FullName -notmatch '\\.git\\'
+            $_.FullName -notmatch '\\node_modules\\'
+            $_.FullName -notmatch '\\target\\'
+            $_.FullName -notmatch '\\build\\'
+            $_.Name -notmatch '^.'
+        } | Select-Object -ExpandProperty FullName
+}
+
+foreach ($filePath in $files) {
+    # Handle filename extraction
+    $filename = Split-Path $filePath -Leaf
+    
+    # Get extension
     $extension = if ($filename -match '\.(.+)$') { $matches[1] } else { "" }
     $language = Get-Language $extension
     
     # Count lines
     $lines = 0
     try {
-        $content = Get-Content -Path $file.FullName -ErrorAction Stop
-        $lines = $content.Length
+        # Read file efficiently, handling encoding issues gracefully
+        $lines = (Get-Content -Path $filePath -ErrorAction Stop).Count
+        # Get-Content returns array for multiple lines, or single object/null for 0-1
+        if ($null -eq $lines) { 
+             # Check if file is empty
+             if ((Get-Item $filePath).Length -gt 0) { $lines = 1 } else { $lines = 0 }
+        }
     } catch {
-        # Skip files that can't be read
+        # Skip files that can't be read (binary, permissions)
         $lines = 0
     }
     
@@ -247,37 +266,66 @@ foreach ($file in $files) {
 }
 
 Write-Host ""
-Write-Host "Results:"
-Write-Host "--------"
+Write-Host "Results:" -ForegroundColor Blue
+Write-Host "--------" -ForegroundColor Blue
 
 if ($totalFiles -eq 0) {
     Write-Host "No files found."
     exit 0
 }
 
+# Function to determine color based on percentage
+function Get-PercentColor($percent) {
+    if ($percent -gt 50) { return "Yellow" }
+    if ($percent -gt 20) { return "Green" }
+    return "White"
+}
+
 # Show top languages by lines of code
-Write-Host "By lines of code:"
-$languageLines.GetEnumerator() | 
-    Sort-Object -Property Value -Descending | 
-    Select-Object -First $TOP_LANGUAGES | 
+Write-Host "By lines of code:" -ForegroundColor Gray -NoNewline; Write-Host ""
+$languageLines.GetEnumerator() |
+    Sort-Object -Property Value -Descending |
+    Select-Object -First $TOP_LANGUAGES |
     ForEach-Object {
         $language = $_.Key
         $lines = $_.Value
-        $percentage = [math]::Round(($lines * 100) / $totalLines, 2)
-        Write-Host ("  {0,-15} {1,5} lines ({2}%)" -f $language, $lines, $percentage)
+        $percentage = 0
+        if ($totalLines -gt 0) {
+             $percentage = [math]::Round(($lines * 100) / $totalLines, 2)
+        }
+        $pColor = Get-PercentColor $percentage
+        
+        Write-Host "  " -NoNewline
+        Write-Host ("{0,-15}" -f $language) -ForegroundColor Cyan -NoNewline
+        Write-Host (" {0,5} lines (" -f $lines) -NoNewline
+        Write-Host ("{0}%" -f $percentage) -ForegroundColor $pColor -NoNewline
+        Write-Host ")"
     }
 
 Write-Host ""
-Write-Host "By file count:"
-$languageCounts.GetEnumerator() | 
-    Sort-Object -Property Value -Descending | 
-    Select-Object -First $TOP_LANGUAGES | 
+Write-Host "By file count:" -ForegroundColor Gray -NoNewline; Write-Host ""
+$languageCounts.GetEnumerator() |
+    Sort-Object -Property Value -Descending |
+    Select-Object -First $TOP_LANGUAGES |
     ForEach-Object {
         $language = $_.Key
         $count = $_.Value
-        $percentage = [math]::Round(($count * 100) / $totalFiles, 2)
-        Write-Host ("  {0,-15} {1,5} files ({2}%)" -f $language, $count, $percentage)
+        $percentage = 0
+        if ($totalFiles -gt 0) {
+            $percentage = [math]::Round(($count * 100) / $totalFiles, 2)
+        }
+        $pColor = Get-PercentColor $percentage
+
+        Write-Host "  " -NoNewline
+        Write-Host ("{0,-15}" -f $language) -ForegroundColor Cyan -NoNewline
+        Write-Host (" {0,5} files (" -f $count) -NoNewline
+        Write-Host ("{0}%" -f $percentage) -ForegroundColor $pColor -NoNewline
+        Write-Host ")"
     }
 
 Write-Host ""
-Write-Host ("Total: {0} files, {1} lines" -f $totalFiles, $totalLines)
+Write-Host "Total: " -NoNewline
+Write-Host "$totalFiles" -ForegroundColor White -NoNewline
+Write-Host " files, " -NoNewline
+Write-Host "$totalLines" -ForegroundColor White -NoNewline
+Write-Host " lines"
