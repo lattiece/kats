@@ -1,12 +1,11 @@
 #!/bin/bash
 
-# kats - Ultra-Fast Language Analyzer Tool v1.2
-# Analyzes a project directory and shows percentage of different programming languages
-# Enhanced with gitignore support, color output, and parallel processing
+# kats - Fast Language Analyzer v1.2
+# Quickly see what programming languages make up your project
 
-# Check if we're using bash (not sh)
+# Make sure we're running with bash
 if [[ -z "$BASH_VERSION" ]]; then
-    echo "Error: kats must be run with bash, not sh"
+    echo "Error: kats needs bash to run"
     exit 1
 fi
 
@@ -30,7 +29,7 @@ if [[ ! -t 1 ]]; then
     RESET=""
 fi
 
-# Function to show help
+# Show help information
 show_help() {
     echo "Usage: kats [directory]"
     echo ""
@@ -45,10 +44,10 @@ show_help() {
     echo "If the directory is a git repository, .gitignore patterns are respected."
 }
 
-# Function to show version
+# Show version information
 show_version() {
     echo "kats v1.2"
-    echo "Enhanced language analyzer with gitignore support and color output"
+    echo "Fast language analyzer with gitignore support"
 }
 
 # Default settings
@@ -208,17 +207,17 @@ LANGUAGE_MAPPING=(
     "gsp:Groovy"
 )
 
-# Fast scanning using find with direct processing
+# Scan the target directory
 echo -e "${CYAN}Scanning $TARGET_DIR...${RESET}"
 
-# Use temporary files for ultra-fast counting (compatible with all bash versions)
+# Set up temporary files for fast counting
 TEMP_COUNTS=$(mktemp)
 TEMP_LINES=$(mktemp)
 TEMP_FILES=$(mktemp)
 TEMP_TOTAL_LINES=$(mktemp)
 trap "rm -f $TEMP_COUNTS $TEMP_LINES $TEMP_FILES $TEMP_TOTAL_LINES" EXIT
 
-# Function to get language for extension (ultra-optimized)
+# Get the language name for a file extension
 get_language() {
     local extension="$1"
     for mapping in "${LANGUAGE_MAPPING[@]}"; do
@@ -232,15 +231,13 @@ get_language() {
     echo "Other"
 }
 
-# Determine file listing method
-# We need to list files relative to TARGET_DIR, or handle paths correctly
-# Best approach: subshell in TARGET_DIR
+# List all files in the project
 list_files() {
     cd "$TARGET_DIR" || return
     
-    # Check if git is available and we are in a git repo
+    # Check if this is a git repository
     if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        # Use git ls-files to respect .gitignore
+        # Use git to respect .gitignore files
         # --cached: tracked files
         # --others: untracked files
         # --exclude-standard: respect .gitignore for untracked files

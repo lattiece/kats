@@ -12,9 +12,7 @@ curl -sSL https://raw.githubusercontent.com/laticee/kats/main/install.sh | bash
 ### Windows Installation
 ```powershell
 # Run in PowerShell as Administrator
-Set-ExecutionPolicy Bypass -Scope Process -Force
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/laticee/kats/main/windows/install_windows.ps1" -OutFile "install_windows.ps1"
-."install_windows.ps1"
+curl -sL https://raw.githubusercontent.com/laticee/kats/main/windows/install_windows.ps1 | powershell -
 ```
 
 ### Manual install
@@ -37,8 +35,8 @@ cd kats
 # Run directly
 powershell.exe -ExecutionPolicy Bypass -File .\windows\kats.ps1
 
-# Or install globally (run as Administrator)
-."windows\install_windows.ps1"
+# Or install globally (requires Administrator)
+.\windows\install_windows.ps1
 ```
 
 ## Usage
