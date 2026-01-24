@@ -6,21 +6,21 @@
 
 ### One-line install (macOS/Linux)
 ```bash
-curl -sSL https://raw.githubusercontent.com/lattiece/kats/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/laticee/kats/main/install.sh | bash
 ```
 
 ### Windows Installation
 ```powershell
 # Run in PowerShell as Administrator
 Set-ExecutionPolicy Bypass -Scope Process -Force
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lattiece/kats/main/windows/install_windows.ps1" -OutFile "install_windows.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/laticee/kats/main/windows/install_windows.ps1" -OutFile "install_windows.ps1"
 ."install_windows.ps1"
 ```
 
 ### Manual install
 ```bash
 # Download the script
-git clone https://github.com/lattiece/kats.git
+git clone https://github.com/laticee/kats.git
 cd kats
 
 # Install globally
@@ -31,7 +31,7 @@ chmod +x ~/bin/kats
 ### Windows Manual Install
 ```powershell
 # Download the repository
-git clone https://github.com/lattiece/kats.git
+git clone https://github.com/laticee/kats.git
 cd kats
 
 # Run directly
@@ -151,7 +151,7 @@ kats recognizes 80+ file types across multiple language categories:
 Found a bug? Want to add a language? Open an issue or Pull Request!
 
 ```bash
-git clone https://github.com/lattiece/kats.git
+git clone https://github.com/laticee/kats.git
 cd kats
 # Make your changes and submit a PR!
 ```
