@@ -1,13 +1,33 @@
 #!/bin/bash
 
-# kats - Ultra-Fast Language Analyzer Tool v1.1
+# kats - Ultra-Fast Language Analyzer Tool v1.2
 # Analyzes a project directory and shows percentage of different programming languages
-# Enhanced with parallel processing, color output, and advanced filtering options
+# Enhanced with gitignore support, color output, and parallel processing
 
 # Check if we're using bash (not sh)
 if [[ -z "$BASH_VERSION" ]]; then
     echo "Error: kats must be run with bash, not sh"
     exit 1
+fi
+
+# ANSI Colors
+BOLD="\033[1m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+CYAN="\033[36m"
+RESET="\033[0m"
+
+# Disable colors if not outputting to a terminal
+if [[ ! -t 1 ]]; then
+    BOLD=""
+    RED=""
+    GREEN=""
+    YELLOW=""
+    BLUE=""
+    CYAN=""
+    RESET=""
 fi
 
 # Function to show help
@@ -19,14 +39,16 @@ show_help() {
     echo "Options:"
     echo "  -h, --help    Show this help message"
     echo "  -v, --version Show version information"
+    echo "  --top N       Show top N languages (default: 10)"
     echo ""
     echo "If no directory is specified, the current directory is analyzed."
+    echo "If the directory is a git repository, .gitignore patterns are respected."
 }
 
 # Function to show version
 show_version() {
-    echo "kats v1.1"
-    echo "Enhanced language analyzer with --top option and modern language support"
+    echo "kats v1.2"
+    echo "Enhanced language analyzer with gitignore support and color output"
 }
 
 # Default settings
@@ -38,35 +60,35 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             show_help
             exit 0
-            ;;
+            ;; 
         -v|--version)
             show_version
             exit 0
-            ;;
+            ;; 
         --top)
             if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
                 TOP_LANGUAGES="$2"
                 shift
             else
-                echo "Error: --top requires a number"
+                echo -e "${RED}Error: --top requires a number${RESET}"
                 show_help
                 exit 1
             fi
-            ;;
+            ;; 
         -*)
-            echo "Unknown option: $1"
+            echo -e "${RED}Unknown option: $1${RESET}"
             show_help
             exit 1
-            ;;
+            ;; 
         *)
             if [[ -z "$TARGET_DIR" ]]; then
                 TARGET_DIR="$1"
             else
-                echo "Error: Only one directory can be specified"
+                echo -e "${RED}Error: Only one directory can be specified${RESET}"
                 show_help
                 exit 1
             fi
-            ;;
+            ;; 
     esac
     shift
 done
@@ -78,7 +100,7 @@ fi
 
 # Check if directory exists
 if [[ ! -d "$TARGET_DIR" ]]; then
-    echo "Error: Directory '$TARGET_DIR' does not exist"
+    echo -e "${RED}Error: Directory '$TARGET_DIR' does not exist${RESET}"
     exit 1
 fi
 
@@ -177,20 +199,17 @@ LANGUAGE_MAPPING=(
     "cmd:Batch"
     "asm:Assembly"
     "s:Assembly"
-
     "xaml:XAML"
     "axaml:XAML"
-
     "gradle:Gradle"
     "groovy:Groovy"
     "gvy:Groovy"
     "gy:Groovy"
     "gsp:Groovy"
-
 )
 
 # Fast scanning using find with direct processing
-echo "Scanning $TARGET_DIR..."
+echo -e "${CYAN}Scanning $TARGET_DIR...${RESET}"
 
 # Use temporary files for ultra-fast counting (compatible with all bash versions)
 TEMP_COUNTS=$(mktemp)
@@ -213,48 +232,85 @@ get_language() {
     echo "Other"
 }
 
-# Process files with maximum speed using process substitution to avoid subshell issues
-while IFS= read -r -d '' file; do
+# Determine file listing method
+# We need to list files relative to TARGET_DIR, or handle paths correctly
+# Best approach: subshell in TARGET_DIR
+list_files() {
+    cd "$TARGET_DIR" || return
+    
+    # Check if git is available and we are in a git repo
+    if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        # Use git ls-files to respect .gitignore
+        # --cached: tracked files
+        # --others: untracked files
+        # --exclude-standard: respect .gitignore for untracked files
+        git ls-files --cached --others --exclude-standard -z
+    else
+        # Fallback to find
+        find . -type f \
+            -not -path '*/\.git/*'
+            -not -path '*/node_modules/*'
+            -not -path '*/target/*'
+            -not -path '*/build/*'
+            -not -name '.*' \
+            -print0 2>/dev/null
+    fi
+}
+
+# Process files with maximum speed using process substitution
+# We run list_files in a subshell, so we need to be careful with paths if TARGET_DIR was absolute
+# but we cd inside list_files, so paths outputted are relative to TARGET_DIR.
+# We need to make sure we can read them. 
+# If we run the loop in the current shell (outside list_files), we are still in original dir.
+# So we need to prepend TARGET_DIR to the filename for 'wc'.
+
+while IFS= read -r -d '' rel_file; do
+    # Construct full path for reading
+    if [[ "$TARGET_DIR" == "." ]]; then
+        file="$rel_file"
+    else
+        # Remove leading ./ if present to avoid double //
+        clean_rel="${rel_file#./}"
+        file="$TARGET_DIR/$clean_rel"
+    fi
+    
     # Get file extension and language
     filename="$(basename "$file")"
     extension="${filename##*.}"
     language=$(get_language "$extension")
     
     # Count lines with maximum efficiency
-    lines=$(wc -l "$file" 2>/dev/null | awk '{print $1}')
-    lines=${lines:-0}
-    
-    # Store data in temporary files to avoid subshell variable issues
-    echo "$file" >> "$TEMP_FILES"
-    echo "$lines" >> "$TEMP_TOTAL_LINES"
-    
-    # Fast counting using temporary files
-    if grep -q "^$language:" "$TEMP_COUNTS" 2>/dev/null; then
-        current_count=$(grep "^$language:" "$TEMP_COUNTS" | cut -d: -f2)
-        new_count=$((current_count + 1))
-        current_lines=$(grep "^$language:" "$TEMP_LINES" | cut -d: -f2)
-        new_lines=$((current_lines + lines))
+    # Use fallback if file read fails (e.g. permission or strange char)
+    if [[ -f "$file" ]]; then
+        lines=$(wc -l "$file" 2>/dev/null | awk '{print $1}')
+        lines=${lines:-0}
         
-        # Fast in-place update
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i "" "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
-            sed -i "" "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+        # Store data in temporary files
+        echo "$file" >> "$TEMP_FILES"
+        echo "$lines" >> "$TEMP_TOTAL_LINES"
+        
+        # Fast counting using temporary files
+        if grep -q "^$language:" "$TEMP_COUNTS" 2>/dev/null; then
+            current_count=$(grep "^$language:" "$TEMP_COUNTS" | cut -d: -f2)
+            new_count=$((current_count + 1))
+            current_lines=$(grep "^$language:" "$TEMP_LINES" | cut -d: -f2)
+            new_lines=$((current_lines + lines))
+            
+            # Fast in-place update
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i "" "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
+                sed -i "" "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+            else
+                sed -i "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
+                sed -i "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+            fi
         else
-            sed -i "s/^$language:$current_count/$language:$new_count/" "$TEMP_COUNTS" 2>/dev/null || true
-            sed -i "s/^$language:$current_lines/$language:$new_lines/" "$TEMP_LINES" 2>/dev/null || true
+            echo "$language:1" >> "$TEMP_COUNTS"
+            echo "$language:$lines" >> "$TEMP_LINES"
         fi
-    else
-        echo "$language:1" >> "$TEMP_COUNTS"
-        echo "$language:$lines" >> "$TEMP_LINES"
     fi
     
-done < <(find "$TARGET_DIR" -type f \
-    -not -path '*/\.git/*' \
-    -not -path '*/node_modules/*' \
-    -not -path '*/target/*' \
-    -not -path '*/build/*' \
-    -not -name '.*' \
-    -print0 2>/dev/null)
+done < <(list_files)
 
 # Calculate totals from temporary files
 total_files=$(wc -l "$TEMP_FILES" 2>/dev/null | awk '{print $1}')
@@ -262,8 +318,8 @@ total_lines=$(awk '{sum+=$1} END {print sum}' "$TEMP_TOTAL_LINES" 2>/dev/null ||
 
 # Display results with minimal overhead
 echo ""
-echo "Results:"
-echo "--------"
+echo -e "${BOLD}${BLUE}Results:${RESET}"
+echo -e "${BLUE}--------${RESET}"
 
 if [[ $total_files -eq 0 ]]; then
     echo "No files found."
@@ -271,24 +327,28 @@ if [[ $total_files -eq 0 ]]; then
 fi
 
 # Show top languages by lines of code
-echo "By lines of code:"
+echo -e "${BOLD}By lines of code:${RESET}"
 sort -t: -k2 -nr "$TEMP_LINES" | head -"$TOP_LANGUAGES" | while read line; do
     language="${line%%:*}"
     lines="${line#*:}"
     percentage=$(awk "BEGIN {printf \"%.2f\", ($lines * 100) / $total_lines}")
-    printf "  %-15s %5d lines (%s%%)
-" "$language" "$lines" "$percentage"
+    
+    # Color coding for percentage
+    p_color="$RESET"
+    if (( $(echo "$percentage > 20" | bc -l 2>/dev/null || echo 0) )); then p_color="$GREEN"; fi
+    if (( $(echo "$percentage > 50" | bc -l 2>/dev/null || echo 0) )); then p_color="$YELLOW"; fi
+    
+    printf "  ${CYAN}%-15s${RESET} %5d lines (${p_color}%s%%${RESET})\n" "$language" "$lines" "$percentage"
 done
 
 echo ""
-echo "By file count:"
+echo -e "${BOLD}By file count:${RESET}"
 sort -t: -k2 -nr "$TEMP_COUNTS" | head -"$TOP_LANGUAGES" | while read line; do
     language="${line%%:*}"
     count="${line#*:}"
     percentage=$(awk "BEGIN {printf \"%.2f\", ($count * 100) / $total_files}")
-    printf "  %-15s %5d files (%s%%)
-" "$language" "$count" "$percentage"
+    printf "  ${CYAN}%-15s${RESET} %5d files (${GREEN}%s%%${RESET})\n" "$language" "$count" "$percentage"
 done
 
 echo ""
-echo "Total: $total_files files, $total_lines lines"
+echo -e "Total: ${BOLD}$total_files${RESET} files, ${BOLD}$total_lines${RESET} lines"
